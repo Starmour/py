@@ -1,7 +1,9 @@
+import os
 import math  # Импорт библиотеки для работы с математическими функциями
 data = [] # Пустой список, для сохранения извлеченных из файла данные
-file_path = r"C:\Users\User\Desktop\py\Задание 1. k-nn.txt" # Путь к файлу
-
+script_dir = os.path.dirname(os.path.abspath(__file__)) 
+file_path = os.path.join(script_dir, "source.txt") # Путь к файлу
+# file_path = r".//source.txt" # Путь к файлу
 is_reading = False # Флаг "читаемости", который включается после начала таблицы
 
 with open(file_path, "r", encoding="utf-8") as file: # Безопасное открытие файла
@@ -39,9 +41,7 @@ k = 5
 for item in data:
     item['dist'] = math.sqrt((item['x1'] - P['x1'])**2 + (item['x2'] - P['x2'])**2)
 
-
 sorted_data = sorted(data, key=lambda x: x['dist']) # сортировка сравнение словарей в списке data по значеию ключа dist при помощи лямбда функции
-
 
 neighbors = sorted_data[:k] # отбор значений в отсортированном списке от 0 до k (не включая)
 
@@ -55,6 +55,10 @@ print("\nVotes: ", votes)
 prediction = max(votes, key=votes.get) # сравнение значений, полученных по ключам словаря votes
 
 print(f"\nПредсказанный класс: {prediction} \n")
-print(f"Соседи: {[(n['ID'], n['Class'], round(n['dist'], 2)) for n in neighbors]} \n")
-for row in data:
-    print(row)
+# print(f"Соседи: {[(n['ID'], n['Class'], round(n['dist'], 2)) for n in neighbors]} \n")
+print("Соседи:")
+for n in neighbors:
+    print(n["ID"], ",", n["Class"], ",", round (n['dist'], 2))
+    print(f"{[(n['ID'], n['Class'], round(n['dist'], 2))]}")
+# for row in data:
+#     print(row)
