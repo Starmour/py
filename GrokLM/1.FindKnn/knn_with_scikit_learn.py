@@ -1,6 +1,7 @@
 from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
 import os
+
 data = []  # Пустой список, для сохранения извлеченных из файла данные
 PARAMS = []
 CLASSES = []
