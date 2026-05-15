@@ -1,12 +1,14 @@
 import os
 from openpyxl import load_workbook
+import numpy as np
 
+# ПОЛУЧАЕМ ОТНОСИТЕЛЬНЫЙ ПУТЬ К ФАЙЛУ
 script_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(script_dir, "dataset.xlsx")
 
-
+# TODO ПАРСИМ ФАЙЛ В МАССИВ
 def xl_2_list(file):
-    data = []  # Пустой список, для сохранения извлеченных из файла данные
+    dataset = []  # Пустой массив, для сохранения извлеченных из файла данных
     workbook = load_workbook(file)
     page = workbook.active
     for row in page.iter_rows(values_only=True):
@@ -16,77 +18,160 @@ def xl_2_list(file):
             "x2": row[2],
             "x3": row[3],
             "Class": row[4],
-        }  # {'ID': 1, 'x1': 'Цифра', 'x2': 'АК-74', 'x3': 'Патруль', 'Class': 'Свой'}
+        }  # создаем словарь для каждого объекта датасета {'ID': 1, 'x1': 'Цифра', 'x2': 'АК-74', 'x3': 'Патруль', 'Class': 'Свой'}
 
-        data.append(item)
+        dataset.append(item) # добавляем словари в массив словарей объектов для дальнейшего использлвания
 
-    return data
+    return dataset
 
+# TODO ОТДЕЛЯЕМ ОБУЧАЮЩКЮ ВЫБОРКУ ОТ ОБЩЕГО ДАТАСЕТА
 
-def get_x_list(full_dataset):
-    data = []
+def get_obj_list(full_dataset):
+    obj_list = [] # массив для хранения ТОЛЬКО объектов (obj) обучающей выборки
     for item in full_dataset:
-        if isinstance(item["ID"], int):
-            data.append(item)
-    return data
+        if isinstance(item["ID"], int): # если есть ID, 
+            obj_list.append(item) # значит добавляем
+    return obj_list
 
+# TODO ОТДЕЛЯЕМ ИСКОМЫЙ ОБЪЕКТ (Х) ОТ ОБЩЕГО ДАТАСЕТА
 
 def get_X(full_dataset):
     for item in full_dataset:
-        if item["Class"] == "?":
-            return item
+        if item["Class"] == "?": # если в строке общего датасета, класс - ? 
+            return item # то вовзращаем этот объект датасета 
 
+# TODO ПОЛУЧАЕМ СУЩЕСТВУЮЩИЕ В ДАТАСЕТЕ КЛАССЫ
 
-def get_y(x_list):
-    CLASSES = []
-    for x in x_list:
-        if x["Class"] not in CLASSES:
-            CLASSES.append(x["Class"])
+def get_y(obj_list):
+    CLASSES = [] # массив для хранения классов (y)
+    for obj in obj_list: # для каждого объекта (obj) обучающей выборки
+        if obj["Class"] not in CLASSES: # если значения поля Class нет в массиве классов
+            CLASSES.append(obj["Class"]), # то добавляем его в этот массив
     return CLASSES
 
+# TODO СОРТИРУЕМ ДАТАСЕТ ПО КЛАССАМ
 
-def sort_dataset(x_list, y_list):
-    sorted_ds = []
-    for y in y_list:
-        y_n_list = []
-        for x in x_list:
-            if x["Class"] == y:
-                y_n_list.append(x)
-        sorted_ds.append(y_n_list)
+def sort_dataset(obj_list, y_list): 
+    sorted_ds = [] # массив для отсортированного датасета
+    for y in y_list: # для каждого класса (y) в списке классов
+        y_n_list = [] # создаем массив объектов этого класса (y1, y2...)
+        for obj in obj_list: # для каждого объекта (obj) в списке объектов
+            if obj["Class"] == y: # если параметр Class текущего объекта (obj) равен текущему значению класса (y)
+                y_n_list.append(obj) # то добавляем этот объект в массив объектов этого класса
+        sorted_ds.append(y_n_list) # добавляем все массивы объектов всех классов в массив
     return sorted_ds
 
+# TODO РАССЧЕТ АПРИОРНОЙ ВЕРОЯТНОСТИ
 
-def calc_priori_P(sorted_ds, x_count):
-    priori_P_list = {}
-    for y_n in sorted_ds:
-        for x in y_n:
-            priori_P_list[x["Class"]] = round(len(y_n) / x_count, 2)
+def calc_priori_P(sorted_ds, obj_count):
+    priori_P_dict = {} # словарь для хранения значений априорных вероятнгостей классов
+    for y_n in sorted_ds: # для каждого класса в отсортированном датасете
+        for obj in y_n: # для каждого объекта этого класса
+            priori_P_dict[obj["Class"]] = round(len(y_n) / obj_count, 2) # в словарь с ключом равным наименрованию Class текущего объекта (obj) присваиваем, округленное до 2 знаков, значение отношение количества объектов данного класса(y1, y2...) к общему количеству объектов датасета
 
-    return priori_P_list
+    return priori_P_dict
 
-# def calc_cond_P()
+# TODO РАССЧЕТ УСЛОВНОЙ ВЕРОЯТНОСТИ
 
+def calc_cond_P(sorted_ds, X):
+    KEYS = ["x1", "x2", "x3"] # создаем массив ключей необходимых для расчета наименований параметров
+    cond_P_dict = {} # создаем словарь для хранеия условных вероятностей параметров всех классов
+    X_params = {} # создаем словарь для хранения параметов искомого олбъета
+    for k in KEYS: # для каждого параметра из массива клбчей
+        X_params[X[k]] = 1 # записываем в ловарь параметров класса текущий параметр со значением 1
+
+    for y_n in sorted_ds: # для каждого класса в отсортированном датасете
+        params = X_params.copy() # создаем скопированный словарь, чтобы не изменить исходный
+        for k in KEYS: # для каждого параметра из массива клбчей
+            count = 0 # заводим счетчик повторений параметра в поолодение 0
+            for obj_n in y_n: # для каждого объекта в текущем классе
+                if obj_n[k] in params: # если текущий параметр (x1, x2, x3) уже есть в словаре параметров
+                    count += 1 # то прибавляем к значению его счетчика 1
+                    params[obj_n[k]] = round(count / len(y_n), 2) # в словарь параметров добавляем название текущего параметра со значчением округленного до 2 знаков отношения количества повторений этого параметра в текущем классе на количество всех параметров этого класса
+        cond_P_dict[obj_n["Class"]] = params # добавляем словарь параметров в словарь УВ с ключем текущего класса
+
+    return cond_P_dict
+
+# TODO РАСЧЕТ БАЙЕСОВСКОЙ ВЕРОЯТНОСТИ
+
+def calc_bayes_P(priori_P_dict, cond_P_dict):
+    bayes_P_dict = {} # чловарь Байесовских вероятностей
+    full_P = 0 # задаем значение полной веротяности 0
+    for pp_y in priori_P_dict: # для априорной вероятности класса y в сдоваре априорных вероятнстей
+        y_inter_P = 1 * priori_P_dict[pp_y] # задаем пересечние вероятностей равное априорной вероятности класса
+        for cp_y in cond_P_dict: # для условной вероятности класса y в сдоваре условных вероятнстей
+            if pp_y == cp_y: # если значения текущих классов в циклах совпадают
+                for cp_obj in cond_P_dict[cp_y]: # для условной вероятности объекта y в сдоваре условных вероятнстей класса y
+                    y_inter_P *= cond_P_dict[cp_y][cp_obj] # значение пересечния вероятностей домнажаем на УВ текущего объекта
+                bayes_P_dict[pp_y] = y_inter_P # добавляем в словарь байесовских вероятностей
+                full_P += y_inter_P # дополняем значение полной вероятности значением байесовской для текущего класса
+               
+
+    for mult_p in bayes_P_dict: # для каждого пересечения вероятностей в словаре
+        bayes_P_dict[mult_p] = round(bayes_P_dict[mult_p] / full_P, 2) # делим его на полную вероятность и перезаписываем 
+
+    return bayes_P_dict
+
+# TODO РАСЧЕТ СГЛАЖИВАНИЯ ЛАПЛАССА (ИЗМЕНЕННЫЙ РАСЧЕТ УСЛОВНЫХ ВЕРОЯТНОСТЕЙ)
+
+def calc_laplace(sorted_ds, X):
+    KEYS = ["x1", "x2", "x3"] # создаем массив ключей необходимых для расчета наименований параметров
+    X_params = {} # создаем словарь для хранения параметов искомого олбъета
+    smooth_P_dict = {} # создаем словарь для хранеия сглаженных УВ параметров всех классов
+    for k in KEYS: # для каждого параметра из массива клбчей
+        X_params[X[k]] = 1  # записываем в ловарь параметров класса текущий параметр со значением 1
+
+    for y_n in sorted_ds: # для каждого класса в отсортированном датасете
+        smooth_params = X_params.copy() # создаем скопированный словарь, чтобы не изменить исходный
+        for k in KEYS: # для каждого параметра из массива клбчей
+            count = 0 # заводим счетчик повторений параметра в поолодение 0
+            for obj_n in y_n: # для каждого объекта в текущем классе
+                if obj_n[k] in smooth_params: # если текущий параметр (x1, x2, x3) уже есть в словаре сглаженных вероятностей параметров
+                    count += 1 # то прибавляем к значению его счетчика 1
+                    smooth_params[obj_n[k]] = round(
+                        (count + 1) / (len(y_n) + (1 * len(KEYS))), 2
+                    ) # в словарь сглаженных УВ параметров добавляем название текущего параметра со значчением округленного до 2 знаков отношения суммы количества повторений этого параметра в текущем классе  и коэфициента сглаживания на сумму общего количество объектов в классе и произведение коэфициента сглаживания на всех параметров этого класса
+        smooth_P_dict[obj_n["Class"]] = smooth_params
+        print(smooth_P_dict)
+
+    return smooth_P_dict
+
+
+#     # количество признаков в классе  + сглаживание) /
+#     # Общее количество объектов в классе + сглаживание * количество параметров
 
 list_from_file = xl_2_list(file_path)
 print("\n\tПОЛНЫЙ ДАТАСЕТ ИЗ ФАЙЛА:", len(list_from_file), "\n", list_from_file)
 
-x_list = get_x_list(list_from_file)
-print("\n\tИЗВЕСТНЫЕ ОБЪЕКТЫ:", len(x_list), "\n", x_list)
+obj_list = get_obj_list(list_from_file)
+print("\n\tИЗВЕСТНЫЕ ОБЪЕКТЫ:", len(obj_list), "\n", obj_list)
 
 X = get_X(list_from_file)
 print("\n\tИСКОМЫЙ ОБЪЕКТ:", len(X), "\n", X)
 
-y_list = get_y(x_list)
+y_list = get_y(obj_list)
 print("\n\tКЛАССЫ ДАТАСЕТА:", len(y_list), "\n", y_list)
 
 
-sorted_ds = sort_dataset(x_list, y_list)
+sorted_ds = sort_dataset(obj_list, y_list)
 print("\n\tОТСОРТИРОВАННЫЙ ДАТАСЕТ:", len(sorted_ds), "\n", sorted_ds)
 
-priori_P = calc_priori_P(sorted_ds, len(x_list))
+priori_P = calc_priori_P(sorted_ds, len(obj_list))
 print("\n\tАПРИОРНЫЕ ВЕРОЯТНОСТИ:", len(priori_P), "\n", priori_P)
 
+cond_P = calc_cond_P(sorted_ds, X)
+print("\n\tУСЛОВНЫЕ ВЕРОЯТНОСТИ:", len(cond_P), "\n", cond_P)
 
+bayes_P = calc_bayes_P(priori_P, cond_P)
+print("\n\tВЕРОЯТНОСТИ ПО БАЙЕСУ:", len(bayes_P), "\n", bayes_P)
+
+smooth_P = calc_laplace(sorted_ds, X)
+print("\n\tСГЛАЖЕННЫЕ ВЕРОЯТНОСТИ:", len(smooth_P), "\n", smooth_P)
+
+smooth_bayes_P = calc_bayes_P(priori_P, smooth_P)
+print(
+    "\n\t СГЛАЖЕННЫЕ ВЕРОЯТНОСТИ ПО БАЙЕСУ:", len(smooth_bayes_P), "\n", smooth_bayes_P
+)
 # TODO 1. ИЗВЛЕЧЬ ДАТАСЕТ ИЗ ФАЙЛА
 # TODO 2. ИЗВЛЕЧЬ ИЗ ДАТАСЕТА ИЗВЕСТНЫЕ ОБЪЕКТЫ
 # TODO 3. ИЗВЛЕЧЬ ИЗ ДАТАСЕТА НЕИЗВЕСТНЫЙ ОБЪЕКТ
@@ -94,3 +179,6 @@ print("\n\tАПРИОРНЫЕ ВЕРОЯТНОСТИ:", len(priori_P), "\n", pri
 # TODO 5. ОТСОРТИРОВАТЬ ИЗВЕСТНЫЙ ДАТАСЕТ ПО КЛАССАМ
 # TODO 6. РАССЧИТАТЬ АППРИОРНЫЕ ВЕРОЯТНОСТИ
 # TODO 7. РАССЧИТАТЬ УСЛОВНЫЕ ВЕРОЯТНОСТИ
+# TODO 8. РАССЧИТАТЬ ПОЛНУЮ ВЕРОЯТНОСТЬ
+# TODO 9. РАССЧИТАТЬ ВЕРОЯТНОСТЬ ПО БАЙЕСУ
+# TODO 10. РАССЧИТАТЬ СГЛАЖИВАНИЕ ЛАПЛАССА
