@@ -39,5 +39,4 @@ def analyt_predict(h):
     plot_points(initial_X, y, h, s)
 
 
-# print(s)
 analyt_predict(6)
