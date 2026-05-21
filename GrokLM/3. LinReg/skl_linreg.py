@@ -4,17 +4,21 @@ import numpy as np
 
 
 def analyt_predict(x_array, y_array, new_X):
-    matrix_X = np.array(x_array)
-    matrix_y = np.array(y_array)
-    ones_array = np.ones((matrix_X.shape[0], 1))
-    X = np.hstack((ones_array, matrix_X.reshape(-1, 1)))
+    matrix_X = np.array(x_array)  # Преобразуем массив данных в numpy-массив (Матрицу)
+    matrix_y = np.array(y_array)  # Преобразуем массив данных в numpy-массив (Матрицу)
+    ones_array = np.ones((matrix_X.shape[0], 1))  # Создаем матрицу единиц
+    X = np.hstack(
+        (ones_array, matrix_X.reshape(-1, 1))
+    )  # Добавляем матрицу единиц в массив парамктров X
     y = matrix_y
-    new_X = np.array([new_X])
-    ones_array = np.ones((new_X.shape[0], 1))
-    new_X = np.hstack((ones_array, new_X.reshape(-1, 1)))
-    model = LinearRegression()
-    model.fit(X, y)
-    y_pred = model.predict(new_X)
+    new_X = np.array([new_X])  # Преобразуем новые параметры в numpy-массив (Матрицу)
+    ones_array = np.ones((new_X.shape[0], 1))  # Создаем матрицу единиц
+    new_X = np.hstack(
+        (ones_array, new_X.reshape(-1, 1))
+    )  # Добавляем матрицу единиц в массив парамктров X
+    model = LinearRegression()  # Создаем объект класса линейной регрессии
+    model.fit(X, y)  # Обучаем объект на параметрах
+    y_pred = model.predict(new_X)  # Выпрлняем предсказываеие на новом параметре
 
     return y_pred
 
