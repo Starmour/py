@@ -1,59 +1,48 @@
+# Импорт библиотеки numpy для работы с массивами и математическими операциями
 import numpy as np
-import random
 
+# Создаём пример данных: X - независимая переменная (признак), y - зависимая переменная (целевое значение)
+# X - массив из 10 значений от 1 до 10
+X = np.array([[100, 5], [150, 10], [200, 15]])
 
-def linear_regression(xs, ys, lr=0.01, epochs=1000):
-    w_0 = random.random()
-    w_1 = random.random()
-    for epoch in range(epochs):
-        i = random.randint(0, len(xs) - 1)
-        print("i = ", i)
-        x_1 = xs[i]
-        print("x_1 =", x_1)
-        y_1 = ys[i]
-        print("y_1 =", y_1)
-        w_0, w_1 = square_trick(w_0, w_1, x_1, y_1, lr=lr)
-        print(w_1, w_0)
-        # input("Press Enter\n\t>")
+# y - массив целевых значений, приблизительно линейно зависящих от X с небольшим шумом
+y = np.array([90, 120, 150])
 
-    return w_0, w_1
+# оперделяем начальние значения параметров
+b = w_1 = w_2 = 0
 
+# рассчитываем хначания предсказаний целевой переменной yp
 
-def absolute_trick(w_0, w_1, x_1, y, lr):
-    predicted_y = w_0 + w_1 * x_1
-    if y > predicted_y:
-        w_1 += lr * x_1
-        w_0 += lr
-    else:
-        w_1 -= lr * x_1
-        w_0 -= lr
-    return w_1, w_0
+yp_1 = b + w_1 * X[0][0] + w_2 * X[0][1]
+yp_2 = b + w_1 * X[1][0] + w_2 * X[1][1]
+yp_3 = b + w_1 * X[2][0] + w_2 * X[2][1]
 
+print("Predicted y:", yp_1, yp_2, yp_3)
 
-# y = w_0 + w_1 * x_1; bp = w_0, ppr = w_1, nr = x_1, p =
-def square_trick(w_0, w_1, x_1, y, lr):
-    predicted_y = w_0 + w_1 * x_1
-    w_0 += lr * (y - predicted_y)  # y-interceprion
-    w_1 += lr * x_1 * (y - predicted_y)  # slope
+# рассчитываем значение ошибки е
+e_1 = yp_1 - y[0]
+e_2 = yp_2 - y[1]
+e_3 = yp_3 - y[2]
 
-    return w_1, w_0
+print("Errors:", e_1, e_2, e_3)
 
-initial_X = [
-    [1, 1, 2, 0, 0, 1],
-    [1, 2, 2, 1, 0, 2],
-    [1, 3, 1, 2, 0, 2],
-    [1, 5, 3, 1, 1, 3],
-    [1, 4, 2, 0, 0, 3],
-    [1, 7, 3, 3, 1, 3],
-    [1, 1, 1, 0, 0, 1],
-    [1, 8, 2, 2, 1, 2],
-    [1, 2, 3, 1, 0, 1],
-    [1, 6, 2, 4, 0, 3],
-]
-initial_y = [13, 21, 25, 43, 28, 54, 12, 52, 20, 43]
+# рассчитываем среднюю квадратичную ошибку mse
+mse = 1 / len(y) * (e_1 * e_1 + e_2 * e_2 + e_3 * e_3)
+print("MSE:", mse)
 
-xs = np.array(initial_X)
-ys = np.array(initial_y)
-new_x = [4,2,1,0,2]
-lr = 0.01
-linear_regression(xs, ys, lr, epochs=10)
+# рассчитываем скорость изменения ошибки dmse
+dmse_b = 2 / len(y) * (e_1 * 1 + e_2 * 1 + e_3 * 1)
+dmse_w_1 = 2 / len(y) * (e_1 * X[0][0] + e_2 * X[1][0] + e_3 * X[2][0])
+dmse_w_2 = 2 / len(y) * (e_1 * X[0][1] + e_2 * X[1][1] + e_3 * X[2][1])
+
+print(dmse_b)
+print(dmse_w_1)
+print(dmse_w_2)
+
+b = b - 0.01 * dmse_b
+w_1 = w_1 - 0.01 * dmse_w_1
+w_2 = w_2 - 0.01 * dmse_w_2
+
+print("b_new:", b)
+print("w_1_new:", w_1)
+print("w_2_new:", w_2)
